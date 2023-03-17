@@ -46,7 +46,7 @@ class Box:
         self.j = [3, 4, 1, 2, 5, 6, 5, 5, 0, 1, 2, 2]
         self.k = [0, 7, 2, 3, 6, 7, 1, 2, 5, 5, 7, 6]
 
-def save_container(cont_dim, box_dims, filename):
+def plot_container(cont_dim, box_dims):
     boxes = []
     for box_dim in box_dims:
         boxes.append(Box(box_dim))
