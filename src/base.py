@@ -15,21 +15,30 @@ class Boxtype:
 
 # Items are pairs (Boxtype, quantity)
 class Itemdict(dict):
-  def __iadd__(self, other):
-      for key in other:
-          if key in self:
-              self[key] += other[key]
-          else:
-              self[key] = other[key]
-      return self
+    def __iadd__(self, other):
+        for key in other:
+            if key in self:
+                self[key] += other[key]
+            else:
+                self[key] = other[key]
+        return self
 
-  def __isub__(self, other):
-      for key in other:
-          if key in self:
-              self[key] -= other[key]
-          else:
-              self[key] = -other[key]
-      return self
+    def __isub__(self, other):
+        for key in other:
+            if key in self:
+                self[key] -= other[key]
+            else:
+                self[key] = -other[key]
+        return self
+  
+    def __le__(self, other):
+        for key in other:
+            if self[key] > other[key]:
+                return False
+        return True
+            
+    def __copy__(self):
+        return Itemdict(self)
 
 #An Aabb is cuboid+location
 #Useful for representing free space cuboids and placed blocks
@@ -89,15 +98,15 @@ class Boxtype:
     l: int; w: int; h: int
     rotx: bool; roty: bool; rotz: bool
     weight: int
+    volume: int
 
     def __init__(self, id, l, w, h, rotx=True, roty=True, rotz=True, weight=1):
         self.id = id
         self.l = l; self.w = w; self.h = h
         self.rotx, self.roty, self.rotz = rotx, roty, rotz
         self.weight = weight
+        self.volume = self.l*self.w*self.h
 
-    def volume(self):
-        return self.l*self.w*self.h
 
 # Items are pairs (Boxtype, quantity)
 class Itemdict(dict):
@@ -124,7 +133,6 @@ class Aabb:
     ymin: int; ymax: int
     zmin: int; zmax: int
     l: int; w: int; h: int
-    manhattan: int
     volume: int
 
     def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax):
@@ -133,7 +141,6 @@ class Aabb:
         self.zmin = zmin; self.zmax = zmax
         self.volume = (xmax-xmin)*(ymax-ymin)*(zmax-zmin)
         self.l = xmax-xmin; self.w = ymax-ymin; self.h = zmax-zmin
-        self.manhattan = self.xmin + self.ymin + self.zmin
     
     # returns true if aabb is inside self
     def strict_intersects(self, aabb):
@@ -142,24 +149,7 @@ class Aabb:
     # returns true if aabb intersects self
     def intersects(self, aabb):
         return self.xmin <= aabb.xmax and self.xmax >= aabb.xmin and self.ymin <= aabb.ymax and self.ymax >= aabb.ymin and self.zmin <= aabb.zmax and self.zmax >= aabb.zmin
-    
-    # returns a list of aabbs that are the result of substracting aabb from self    
-    def subtract(self, aabb):
-        sub = list()
-        if aabb.xmax < self.xmax:
-            sub.append(Aabb(aabb.xmax, self.xmax, self.ymin, self.ymax, self.zmin, self.zmax))
-        if aabb.ymax < self.ymax:
-            sub.append(Aabb(self.xmin, self.xmax, aabb.ymax, self.ymax, self.zmin, self.zmax))
-        if aabb.zmax < self.zmax:
-            sub.append(Aabb(self.xmin, self.xmax, self.ymin, self.ymax, aabb.zmax, self.zmax))
-        if aabb.xmin > self.xmin:
-            sub.append(Aabb(self.xmin, aabb.xmin, self.ymin, self.ymax, self.zmin, self.zmax))
-        if aabb.ymin > self.ymin:
-            sub.append(Aabb(self.xmin, self.xmax, self.ymin, aabb.ymin, self.zmin, self.zmax))
-        if aabb.zmin > self.zmin:
-            sub.append(Aabb(self.xmin, self.xmax, self.ymin, self.ymax, self.zmin, aabb.zmin))
-        return sub
-    
+       
     def can_contain(self, aabb):
         return self.l >= aabb.l and self.w >= aabb.w and self.h >= aabb.h
     
@@ -170,6 +160,55 @@ class Aabb:
     def __str__(self):
         return "Aabb: xmin: " + str(self.xmin) + " xmax: " + str(self.xmax) + " ymin: " + str(self.ymin) + " ymax: " + str(self.ymax) + " zmin: " + str(self.zmin) + " zmax: " + str(self.zmax)
 
+class Space(Aabb):
+    manhattan: int #the manhattan distance to the closest corner of the space to a block's corner
+    corner_point: list() #the closest corner of the space to a block's corner
+
+    #static variable
+    filling = "origin" #the filling method used by the algorithm
+
+    def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax, block):
+        super().__init__(xmin, xmax, ymin, ymax, zmin, zmax)
+        self.container_block = block
+        self.corner_point = [xmin, ymin, zmin]
+        xdist = xmin; ydist = ymin; zdist = zmin
+
+        #compute manhattan distance to the closest corner of the block
+        if block.l-xmax < xmin and Space.filling != "origin":
+            xdist = block.l-xmax
+            self.corner_point[0] = xmax
+
+        if block.w-ymax < ymin and Space.filling != "origin":
+            ydist = block.w-ymax
+            self.corner_point[1] = ymax
+
+        if block.h-zmax < zmin and Space.filling == "free": 
+            zdist = block.h-zmax
+            self.corner_point[2] = zmax
+
+        self.manhattan = xdist + ydist + zdist
+        
+    # returns a list of aabbs that are the result of substracting aabb from self    
+    def subtract(self, aabb, container_block):
+        sub = list()
+        if aabb.xmax < self.xmax:
+            sub.append(Space(aabb.xmax, self.xmax, self.ymin, self.ymax, self.zmin, self.zmax, container_block))
+        if aabb.ymax < self.ymax:
+            sub.append(Space(self.xmin, self.xmax, aabb.ymax, self.ymax, self.zmin, self.zmax, container_block))
+        if aabb.zmax < self.zmax:
+            sub.append(Space(self.xmin, self.xmax, self.ymin, self.ymax, aabb.zmax, self.zmax, container_block))
+        if aabb.xmin > self.xmin:
+            sub.append(Space(self.xmin, aabb.xmin, self.ymin, self.ymax, self.zmin, self.zmax, container_block))
+        if aabb.ymin > self.ymin:
+            sub.append(Space(self.xmin, self.xmax, self.ymin, aabb.ymin, self.zmin, self.zmax, container_block))
+        if aabb.zmin > self.zmin:
+            sub.append(Space(self.xmin, self.xmax, self.ymin, self.ymax, self.zmin, aabb.zmin, container_block))
+        return sub
+
+    
+
+
+    
 #FreeSpaace represent the free space inside a block
 #Consists of a list of free space aabbs (spaces)
 class FreeSpace:
@@ -191,13 +230,13 @@ class FreeSpace:
               aabbs.remove(aabbs[j])
               j -= 1
           
-    def crop(self, aabb):
+    def crop(self, aabb, container_block):
         new_spaces = list()
         to_remove = list()
         for space in self.spaces:
             if space.intersects(aabb):                
                 if space.strict_intersects(aabb):
-                    sub = space.subtract(aabb)
+                    sub = space.subtract(aabb, container_block)
                     for s in sub: new_spaces.append(s)
                 else:
                     new_spaces.append(space)
@@ -217,8 +256,8 @@ class FreeSpace:
             if space.manhattan < min: 
               min = space.manhattan
               cspace = space
-        if cspace == None: return None, None
-        else: return (cspace.xmin, cspace.ymin, cspace.zmin), cspace
+        if cspace == None: return None
+        else: return cspace
 
 
     #remove all spaces that cannot be filled by a boxtype
@@ -240,18 +279,36 @@ class FreeSpace:
           _str+= str(space) +"\n"
         return _str
 
+from copy import copy
+
 #A block is compund by a set of items(boxtype+quantity)
 #The container is a block
 class Block:
     l: int; w: int; h: int
     occupied_volume: int
     weight: int
-    items: Itemdict() # Boxtype: int
     volume: int
+    items: Itemdict() # Boxtype: int
     free_space: FreeSpace() # list of free spaces
+    aabbs: list() # placed blocks
 
-    def __init__(self, boxtype=None, rot=True, l=0, w=0, h=0):
-        if boxtype is not None:
+    def __copy__(self):
+        return Block(copy_block=self) 
+
+    def __init__(self, boxtype=None, rot=True, l=0, w=0, h=0, copy_block=None):
+        if copy_block is not None:
+            self.l = copy_block.l
+            self.w = copy_block.w
+            self.h = copy_block.h
+            self.weight = copy_block.weight
+            self.occupied_volume = copy_block.occupied_volume
+            self.volume = copy_block.volume
+            self.items = Itemdict()
+            self.items += copy_block.items
+            #self.free_spaces
+            #self.aabbs 
+
+        elif boxtype is not None:
           if rot[0]=='w': self.l = boxtype.w
           elif rot[1]=='w': self.w = boxtype.w
           elif rot[2]=='w': self.h = boxtype.w
@@ -265,8 +322,8 @@ class Block:
           elif rot[2]=='h': self.h = boxtype.h
           
           self.weight = boxtype.weight
-          self.occupied_volume = boxtype.volume()
-          self.volume = boxtype.volume()
+          self.occupied_volume = boxtype.volume
+          self.volume = boxtype.volume
           self.items = Itemdict()
           self.items[boxtype] = 1
           self.free_spaces = FreeSpace() # empty list of free spaces
@@ -277,14 +334,20 @@ class Block:
           self.weight = 0
           self.items = Itemdict()
           self.volume = l*w*h
-          self.free_space = FreeSpace(Aabb(0, self.l, 0, self.w, 0, self.h)) # all is free space
+          self.aabbs = []
+          self.free_space = FreeSpace(Space(0, self.l, 0, self.w, 0, self.h, self)) # all is free space
 
-    def add_block(self, block, location):
-        x, y, z = location
+    def add_block(self, block, space):
+        x,y,z = space.corner_point
+        if x == space.xmax: x -= block.l
+        if y == space.ymax: y -= block.w
+        if z == space.zmax: z -= block.h
+
+        self.aabbs.append(Aabb(x,x+block.l,y,y+block.w,z,z+block.h))
         self.occupied_volume += block.occupied_volume
         self.weight += block.weight
         self.items += block.items
-        self.free_space.crop(Aabb(x, x+block.l, y, y+block.w, z, z+block.h)) # remove the space occupied by the block
+        self.free_space.crop(Aabb(x, x+block.l, y, y+block.w, z, z+block.h), self) # remove the space occupied by the block
 
 
     #x:w, y:l, z:h
@@ -314,17 +377,60 @@ class Block:
 
         return True
 
+    def is_constructible(self, items):
+        for item in self.items:
+            if items[item] < self.items[item]:
+                return False
+        return True
+    
+    @staticmethod
+    def generate_blocks(b1, b2, min_fr=0.98):
+        a = copy(b1)
+        if a.join(b2, 'x', min_fr): 
+            yield a; a =  copy(b1)
+
+        if a.join(b2, 'y', min_fr): 
+            yield a; a =  copy(b1)
+
+        if a.join(b2, 'z', min_fr): 
+            yield a; 
+
     def occupied_volume_ratio(self):
         return self.occupied_volume/self.volume
+    
+    def __le__(self, other):
+        return self.l <= other.l and self.w <= other.w and self.h <= other.h
       
     def __str__(self):
         return "Block: l: " + str(self.l) + " w: " + str(self.w) + " h: " + str(self.h) + " weight: " + str(self.weight) + " volume: " + str(self.volume) + " occupied_volume: " + str(self.occupied_volume) + " items: " + str(self.items) + " ratio:" + str(self.occupied_volume_ratio())
 
 class BlockList(list):
-    def __init__(self, items, type, *args):
+    def __init__(self, items, type, cont=None, *args):
         super().__init__(*args)
         if(type=="simple_blocks"):
             self.generate_simple_blocks(items)
+
+        if(type=="general_blocks"):
+            self.generate_general_blocks(items,cont)
+
+    def generate_general_blocks(self,items,cont,min_fr=0.98, max_bl=10000):
+        self.generate_simple_blocks(items)
+                                   
+        B = self
+        P = B.copy()
+
+        while len(B) < max_bl:
+            N = list()
+            for b1 in P:
+                for b2 in B:
+                    for new_block in Block.generate_blocks(b1, b2, min_fr):
+                        if new_block.is_constructible(items) and new_block <= cont:
+                            N.append(new_block)
+                            if len(B) + len(N) >= max_bl: break
+            if len(N) == 0: break
+            B.extend(N)
+            P = N
+
 
     def generate_simple_blocks(self,items):
         for item in items:
@@ -343,15 +449,14 @@ class BlockList(list):
                     largest = block
         return largest
 
+
     #remove blocks that cannot be constructed with the given items(boxtype->number)
     def remove_unconstructable(blocks, items):
         #cannot remove while iterating
         to_remove = list()
         for block in blocks:
-            for item in block.items:
-                if items[item] < block.items[item]:
-                    to_remove.append(block)
-                    break
+            if not block.is_constructible(items):
+                to_remove.append(block)
         for block in to_remove:
             blocks.remove(block)
 
