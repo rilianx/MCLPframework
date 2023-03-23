@@ -393,13 +393,13 @@ class Block:
         return "Block: l: " + str(self.l) + " w: " + str(self.w) + " h: " + str(self.h) + " weight: " + str(self.weight) + " volume: " + str(self.volume) + " occupied_volume: " + str(self.occupied_volume) + " items: " + str(self.items) + " ratio:" + str(self.occupied_volume_ratio())
 
 class BlockList(list):
-    def __init__(self, items, type, cont=None, *args):
+    def __init__(self, items, type, cont=None, min_fr=0.98, max_bl=10000, *args):
         super().__init__(*args)
         if(type=="simple_blocks"):
             self.generate_simple_blocks(items)
 
         if(type=="general_blocks"):
-            self.generate_general_blocks(items,cont)
+            self.generate_general_blocks(items,cont, min_fr, max_bl)
 
     def generate_general_blocks(self,items,cont,min_fr=0.98, max_bl=10000):
         self.generate_simple_blocks(items)
