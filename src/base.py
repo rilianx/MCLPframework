@@ -1,17 +1,16 @@
 class Boxtype:
     id: int
     l: int; w: int; h: int
-    rotx: bool; roty: bool; rotz: bool
+    rot_l: bool; rot_w: bool; rot_h: bool
     weight: int
+    volume: int
 
-    def __init__(self, id, l, w, h, rotx=True, roty=True, rotz=True, weight=1):
+    def __init__(self, id, l, w, h, rot_l=True, rot_w=True, rot_h=True, weight=1):
         self.id = id
         self.l = l; self.w = w; self.h = h
-        self.rotx, self.roty, self.rotz = rotx, roty, rotz
+        self.rot_l, self.rot_w, self.rot_h = rot_l, rot_w, rot_h
         self.weight = weight
-
-    def volume(self):
-        return self.l*self.w*self.h
+        self.volume = l*w*h
 
 # Items are pairs (Boxtype, quantity)
 class Itemdict(dict):
@@ -92,20 +91,6 @@ class Aabb:
     
     def __str__(self):
         return "Aabb: xmin: " + str(self.xmin) + " xmax: " + str(self.xmax) + " ymin: " + str(self.ymin) + " ymax: " + str(self.ymax) + " zmin: " + str(self.zmin) + " zmax: " + str(self.zmax)
-
-class Boxtype:
-    id: int
-    l: int; w: int; h: int
-    rotx: bool; roty: bool; rotz: bool
-    weight: int
-    volume: int
-
-    def __init__(self, id, l, w, h, rotx=True, roty=True, rotz=True, weight=1):
-        self.id = id
-        self.l = l; self.w = w; self.h = h
-        self.rotx, self.roty, self.rotz = rotx, roty, rotz
-        self.weight = weight
-        self.volume = self.l*self.w*self.h
 
 
 # Items are pairs (Boxtype, quantity)
@@ -292,11 +277,14 @@ class Block:
     free_space: FreeSpace() # list of free spaces
     aabbs: list() # placed blocks
 
+     # copy blocks and items
     def __copy__(self):
         return Block(copy_block=self) 
 
     def __init__(self, boxtype=None, rot=True, l=0, w=0, h=0, copy_block=None):
+
         if copy_block is not None:
+            # copy blocks and items
             self.l = copy_block.l
             self.w = copy_block.w
             self.h = copy_block.h
@@ -433,13 +421,20 @@ class BlockList(list):
 
 
     def generate_simple_blocks(self,items):
+        #items is a dictionary of boxtype->number
         for item in items:
-            self.append(Block(item,"lwh"))
-            self.append(Block(item,"whl"))
-            self.append(Block(item,"hwl"))
-            self.append(Block(item,"hlw"))
-            self.append(Block(item,"lhw"))
-            self.append(Block(item,"wlh"))
+            if item.rot_l ==True:
+                self.append(Block(item,"whl"))
+                self.append(Block(item,"hwl"))
+            
+            if item.rot_w ==True:
+                self.append(Block(item,"lhw"))
+                self.append(Block(item,"hlw"))
+
+            if item.rot_h ==True: # trivial
+                self.append(Block(item,"lwh"))
+                self.append(Block(item,"wlh"))
+
 
     def largest(blocks, maxL, maxW, maxH):
         largest = None
