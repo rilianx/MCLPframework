@@ -276,6 +276,7 @@ class Block:
     items: Itemdict() # Boxtype: int
     free_space: FreeSpace() # list of free spaces
     aabbs: list() # placed blocks
+    tokens: list()
 
      # copy blocks and items
     def __copy__(self):
@@ -293,6 +294,7 @@ class Block:
             self.volume = copy_block.volume
             self.items = Itemdict()
             self.items += copy_block.items
+            self.tokens = copy_block.tokens
             #self.free_spaces
             #self.aabbs 
 
@@ -315,6 +317,7 @@ class Block:
           self.items = Itemdict()
           self.items[boxtype] = 1
           self.free_spaces = FreeSpace() # empty list of free spaces
+          self.tokens = []
 
         else: 
           self.l = l; self.w = w; self.h = h
@@ -417,7 +420,7 @@ class BlockList(list):
                             if len(B) + len(N) >= max_bl: break
 
                     if len(B) + len(N) >= max_bl: break
-                    
+
                 if len(B) + len(N) >= max_bl: break
 
             if len(N) == 0: break
@@ -427,9 +430,8 @@ class BlockList(list):
 
     def generate_simple_blocks(self,items):
         #items is a dictionary of boxtype->number
-        self.append(Block(item,"lwh"))
-
         for item in items:
+            self.append(Block(item,"lwh"))
             if item.rot_l ==True:
                 self.append(Block(item,"whl"))
                 self.append(Block(item,"hwl"))
