@@ -415,6 +415,11 @@ class BlockList(list):
                         if new_block.is_constructible(items) and new_block <= cont:
                             N.append(new_block)
                             if len(B) + len(N) >= max_bl: break
+
+                    if len(B) + len(N) >= max_bl: break
+                    
+                if len(B) + len(N) >= max_bl: break
+
             if len(N) == 0: break
             B.extend(N)
             P = N
@@ -422,6 +427,8 @@ class BlockList(list):
 
     def generate_simple_blocks(self,items):
         #items is a dictionary of boxtype->number
+        self.append(Block(item,"lwh"))
+
         for item in items:
             if item.rot_l ==True:
                 self.append(Block(item,"whl"))
@@ -432,7 +439,7 @@ class BlockList(list):
                 self.append(Block(item,"hlw"))
 
             if item.rot_h ==True: # trivial
-                self.append(Block(item,"lwh"))
+                #self.append(Block(item,"lwh"))
                 self.append(Block(item,"wlh"))
 
 
