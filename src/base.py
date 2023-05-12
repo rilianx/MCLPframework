@@ -151,6 +151,7 @@ class Space(Aabb):
 
     #static variable
     filling = "origin" #the filling method used by the algorithm
+    vertical_stability = True # boxes must be completly supported
 
     def __init__(self, xmin, xmax, ymin, ymax, zmin, zmax, block):
         super().__init__(xmin, xmax, ymin, ymax, zmin, zmax)
@@ -181,7 +182,10 @@ class Space(Aabb):
         if aabb.ymax < self.ymax:
             sub.append(Space(self.xmin, self.xmax, aabb.ymax, self.ymax, self.zmin, self.zmax, container_block))
         if aabb.zmax < self.zmax:
+          if Space.vertical_stability==False:
             sub.append(Space(self.xmin, self.xmax, self.ymin, self.ymax, aabb.zmax, self.zmax, container_block))
+          else:
+            sub.append(Space(aabb.xmin, aabb.xmax, aabb.ymin, aabb.ymax, aabb.zmax, self.zmax, container_block))
         if aabb.xmin > self.xmin:
             sub.append(Space(self.xmin, aabb.xmin, self.ymin, self.ymax, self.zmin, self.zmax, container_block))
         if aabb.ymin > self.ymin:
