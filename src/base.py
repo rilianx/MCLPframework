@@ -93,24 +93,6 @@ class Aabb:
         return "Aabb: xmin: " + str(self.xmin) + " xmax: " + str(self.xmax) + " ymin: " + str(self.ymin) + " ymax: " + str(self.ymax) + " zmin: " + str(self.zmin) + " zmax: " + str(self.zmax)
 
 
-# Items are pairs (Boxtype, quantity)
-class Itemdict(dict):
-  def __iadd__(self, other):
-      for key in other:
-          if key in self:
-              self[key] += other[key]
-          else:
-              self[key] = other[key]
-      return self
-
-  def __isub__(self, other):
-      for key in other:
-          if key in self:
-              self[key] -= other[key]
-          else:
-              self[key] = -other[key]
-      return self
-
 #An Aabb is cuboid+location
 #Useful for representing free space cuboids and placed blocks
 class Aabb:
@@ -269,6 +251,7 @@ class FreeSpace:
         return _str
 
 from copy import copy
+from types import NoneType
 
 #A block is compund by a set of items(boxtype+quantity)
 #The container is a block
@@ -449,13 +432,18 @@ class BlockList(list):
                 self.append(Block(item,"wlh"))
 
 
-    def largest(blocks, maxL, maxW, maxH):
-        largest = None
-        for block in blocks:
-            if block.w <= maxW and block.l <= maxL and block.h <= maxH:
-                if largest is None or block.volume > largest.volume:
-                    largest = block
-        return largest
+    def best(blocks, space, cont, eval_function, ctr_functions):
+      best_block = None; best_eval = float("-inf")
+      for block in blocks:
+        # Check if all constraints are True for the current block
+        if all(ctr(block, space, cont) for ctr in ctr_functions):   
+          ev = eval_function(block, space, cont)
+          if ev > best_eval:
+            best_block = block
+            best_eval = ev
+
+      return best_block
+
 
 
     #remove blocks that cannot be constructed with the given items(boxtype->number)
