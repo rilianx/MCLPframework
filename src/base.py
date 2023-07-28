@@ -140,6 +140,7 @@ class Space(Aabb):
         self.container_block = block
         self.corner_point = [xmin, ymin, zmin]
         xdist = xmin; ydist = ymin; zdist = zmin
+        if  Space.filling == "bottom-up": zdist = 1000*zmin
 
         #compute manhattan distance to the closest corner of the block
         if block.l-xmax < xmin and Space.filling != "origin":
