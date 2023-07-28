@@ -1,8 +1,9 @@
 from base import Aabb
 from traitlets.traitlets import _validate_link
 
-def CS_function(possible_block,space,container):
-    stored_blocks = container.aabbs
+p = 0.00
+def CS_function(possible_block,space,cont):
+    stored_blocks = cont.aabbs
     block_value = 0
 
     x,y,z = space.corner_point
@@ -37,11 +38,11 @@ def CS_function(possible_block,space,container):
         elif abs(block.zmin - last.zmax) <= (block.zmax - block.zmin) * p and ((block.ymin < last.ymax and block.ymax > last.ymin ) and (block.xmin < last.xmax and block.xmax > last.xmin )):
             block_value+= ((y_diff_min-y_diff_max) * (x_diff_min-x_diff_max))
 
-    if block.xmin <= (block.xmax - block.xmin) * p or abs(block.xmax - space.l) <= (block.xmax - block.xmin) * p:
+    if block.xmin <= (block.xmax - block.xmin) * p or abs(block.xmax - cont.l) <= (block.xmax - block.xmin) * p:
         block_value+= ((block.ymax-block.ymin) * (block.zmax-block.zmin))
-    if block.ymin <= (block.ymax - block.ymin) * p or abs(block.ymax - space.w) <= (block.ymax - block.ymin) * p:
+    if block.ymin <= (block.ymax - block.ymin) * p or abs(block.ymax - cont.w) <= (block.ymax - block.ymin) * p:
         block_value+= ((block.xmax-block.xmin) * (block.zmax-block.zmin))
-    if block.zmin <= (block.zmax - block.zmin) * p or abs(block.zmax - space.h) <= (block.zmax - block.zmin) * p:
+    if block.zmin <= (block.zmax - block.zmin) * p or abs(block.zmax - cont.h) <= (block.zmax - block.zmin) * p:
         block_value+= ((block.ymax-block.ymin) * (block.xmax-block.xmin))
 
     block_value/=(possible_block.l * possible_block.w) * 2 + (possible_block.l * possible_block.h) * 2 + (possible_block.w * possible_block.h) * 2
