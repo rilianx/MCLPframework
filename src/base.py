@@ -270,9 +270,22 @@ class Block:
     def __copy__(self):
         return Block(copy_block=self) 
 
-    def __init__(self, boxtype=None, rot=True, l=0, w=0, h=0, copy_block=None):
+    def __init__(self, boxtype=None, rot=True, l=0, w=0, h=0, copy_block=None, items=None):
 
-        if copy_block is not None:
+        if items is not None: #block of boxes
+            self.l = l
+            self.w = w
+            self.h = h      
+            self.volume = l*w*h
+            self.weight = 0
+            self.occupied_volume = 0
+            for item in items:
+              self.occupied_volume += item.volume
+              self.weight += item.weight
+            self.items = Itemdict()
+            self.items += copy_block.items
+
+        elif copy_block is not None:
             # copy blocks and items
             self.l = copy_block.l
             self.w = copy_block.w
