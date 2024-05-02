@@ -280,10 +280,10 @@ class Block:
             self.weight = 0
             self.occupied_volume = 0
             for item in items:
-              self.occupied_volume += item.volume
-              self.weight += item.weight
+              self.occupied_volume += item.volume*items[item]
+              self.weight += item.weight*items[item]
             self.items = Itemdict()
-            self.items += copy_block.items
+            self.items += items
 
         elif copy_block is not None:
             # copy blocks and items
